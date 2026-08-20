@@ -1,2 +1,13 @@
 Flask==3.0.3
 flask-cors==5.0.0
+flask-socketio==5.3.6
+flask-sqlalchemy==3.1.1
+sqlalchemy==2.0.35
+alembic==1.13.3
+networkx==3.4.2
+python-dotenv==1.0.1
+eventlet==0.37.0
+pytest==8.3.3
+pytest-asyncio==0.24.0
+websockets==13.1
+requests==2.32.3
