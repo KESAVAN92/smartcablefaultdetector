@@ -2,3 +2,5 @@ Flask==3.0.3
 flask-cors==5.0.0
 networkx==3.3
 pytest==8.3.3
+flask-sock==0.7.0
+websockets==17.0.1
