@@ -13,6 +13,8 @@ SocketIO namespaces (registered by Module 3):
 """
 
 import os
+from pathlib import Path
+
 import eventlet
 eventlet.monkey_patch()
 
@@ -37,11 +39,20 @@ from database import init_db
 socketio = SocketIO()
 
 
-def create_app(config: dict | None = None) -> Flask:
+def create_app(test_config: dict | None = None) -> Flask:
     app = Flask(__name__)
     CORS(app, resources={r"/*": {"origins": "*"}})
-    if config:
-        app.config.update(config)
+
+    base_dir = Path(__file__).resolve().parent
+    app.config.update(
+        DATABASE_PATH=str(base_dir / "data" / "module2.sqlite3"),
+        MODULE2_LAYOUT_DIR=str(base_dir / "storage" / "module2"),
+    )
+    if test_config:
+        app.config.update(test_config)
+
+    Path(app.config["DATABASE_PATH"]).parent.mkdir(parents=True, exist_ok=True)
+    Path(app.config["MODULE2_LAYOUT_DIR"]).mkdir(parents=True, exist_ok=True)
 
     @app.get("/")
     def index():
