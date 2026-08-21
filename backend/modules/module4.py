@@ -1,6 +1,8 @@
 import os
 import sqlite3
 import threading
+import queue
+import json
 from datetime import datetime, timezone
 from typing import Any
 
@@ -11,6 +13,10 @@ from .auth import create_jwt, decode_jwt, require_auth
 
 module4_bp = Blueprint("module4", __name__)
 sock = Sock()
+
+# Websocket subscribers for alert broadcasts
+_alert_subscribers: list[queue.Queue] = []
+_alert_lock = threading.Lock()
 
 
 def utc_now_iso() -> str:
@@ -81,14 +87,30 @@ def init_module4(app):
     @sock.route("/alerts/stream")
     def alerts_stream(ws):
         # simple broadcast queue per connection
+        subscriber = queue.Queue()
+        with _alert_lock:
+            _alert_subscribers.append(subscriber)
+
         try:
             while True:
-                # wait for ping from client to keep socket open
-                msg = ws.receive()
-                if msg is None:
+                try:
+                    payload = subscriber.get(timeout=1)
+                except queue.Empty:
+                    # allow client to send pings or disconnect
+                    ping = ws.receive()
+                    if ping is None:
+                        break
+                    continue
+                try:
+                    ws.send(json.dumps(payload))
+                except Exception:
                     break
         except Exception:
             pass
+        finally:
+            with _alert_lock:
+                if subscriber in _alert_subscribers:
+                    _alert_subscribers.remove(subscriber)
 
     return None
 
@@ -130,6 +152,15 @@ def handle_new_reading(reading: dict[str, Any]):
     except RuntimeError:
         # not in app context
         pass
+    # Broadcast to websocket subscribers (best-effort)
+    payload = {"event_id": event_id, "type": alert_type, "message": message, "created_at": utc_now_iso()}
+    with _alert_lock:
+        subs = list(_alert_subscribers)
+    for q in subs:
+        try:
+            q.put(payload, block=False)
+        except Exception:
+            pass
 
 
 @module4_bp.get("/")

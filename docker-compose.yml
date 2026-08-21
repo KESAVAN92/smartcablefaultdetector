@@ -1,0 +1,22 @@
+version: '3.8'
+services:
+  backend:
+    build: ./backend
+    volumes:
+      - ./backend:/app
+    ports:
+      - '5000:5000'
+    environment:
+      - JWT_SECRET=${JWT_SECRET}
+      - MODULE1_START_BACKGROUND=0
+    command: >
+      sh -c "python -m pip install -r requirements.txt && python app.py"
+
+  frontend:
+    build: ./frontend
+    volumes:
+      - ./frontend:/app
+    ports:
+      - '3000:3000'
+    command: >
+      sh -c "npm install && npm run dev -- --host"
