@@ -4,3 +4,4 @@ networkx==3.3
 pytest==8.3.3
 flask-sock==0.7.0
 websockets==17.0.1
+PyJWT==2.8.0

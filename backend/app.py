@@ -60,6 +60,14 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.register_blueprint(module3_bp, url_prefix="/api/module3")
     app.register_blueprint(module4_bp, url_prefix="/api/module4")
     init_module1(app)
+    # Initialize module4 (alerts, auth, reports)
+    try:
+        from modules.module4 import init_module4
+
+        init_module4(app)
+    except Exception:
+        # If module4 fails to initialize, continue without blocking the app startup.
+        pass
 
     # Exact contract aliases for downstream consumers.
     app.add_url_rule("/readings", "module1_readings_post", create_reading, methods=["POST"])
