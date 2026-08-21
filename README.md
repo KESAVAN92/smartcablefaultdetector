@@ -1,3 +1,16 @@
+## ML Predictive Maintenance
+
+The project now exposes a best-effort ML enhancement alongside the existing deterministic ADC-to-distance and graph mapping pipeline.
+
+- Dataset: `underground_cable_ml_dataset_30000 (8).csv`, 30,000 rows, eight labeled classes. Its `data_source` is `SYNTHETIC_SIMULATION_FOR_PROJECT_ML`; it is not field-observed data.
+- Features: sensor values, cable metadata, fault/overload history, rolling resistance/current/voltage statistics, and trend features. Database IDs are not model features.
+- Training: chronological 70% training, 15% validation, 15% test split. Run the reproducible pipeline through the ML service after installing `backend/requirements.txt`.
+- Algorithms: XGBoost is the configured primary classifier, with a Random Forest fallback when XGBoost is unavailable; Isolation Forest detects unusual patterns. RUL and failure probabilities use explicitly synthetic-demo regressors because this dataset has no observed failure/censoring records for survival analysis.
+- Model output: top-three fault probabilities, anomaly score, health score, estimated RUL, failure probabilities, explanation features, and model version.
+- APIs: `POST /ml/predict`, `GET /ml/predictions`, `GET /ml/predictions/{id}`, `GET /ml/cable/{edge_id}/health`, `GET /ml/cable/{edge_id}/history`, and `GET /ml/analytics`.
+- Frontend: open `ML Analytics` from the navigation after starting the frontend and backend.
+
+ML predictions are probabilistic estimates and must not be interpreted as guaranteed physical cable failure. Actual maintenance decisions should be verified by qualified personnel. If ML is unavailable, sensor persistence, graph mapping, and normal alerts continue independently.
 # Underground Cable Fault Distance Locator with Graph-Based Digital Mapping
 
 This project implements a web-based cable fault detection and mapping system, structured in 4 modular components. It builds upon a hardware system for fault sensing by adding full digital mapping, live alerts, JWT-based authentication, and automated reporting.

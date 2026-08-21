@@ -62,6 +62,15 @@ def _ensure_schema(connection: sqlite3.Connection) -> None:
             message TEXT NOT NULL,
             created_at TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS ml_predictions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, reading_id INTEGER, fault_event_id INTEGER,
+            edge_id TEXT, predicted_fault_type TEXT NOT NULL, confidence REAL NOT NULL,
+            anomaly_score REAL NOT NULL, is_anomaly INTEGER NOT NULL, health_score REAL NOT NULL,
+            remaining_life_days REAL, failure_probability_30d REAL, failure_probability_90d REAL,
+            failure_probability_180d REAL, model_version TEXT NOT NULL, prediction_timestamp TEXT NOT NULL,
+            explanation TEXT, model_source TEXT
+        );
         """
     )
     connection.commit()
@@ -83,6 +92,12 @@ def _jwt_secret() -> str:
 
 def init_module4(app):
     sock.init_app(app)
+
+    @app.teardown_appcontext
+    def close_module4_connection(_error=None):
+        connection = g.pop("module4_db", None)
+        if connection is not None:
+            connection.close()
 
     @sock.route("/alerts/stream")
     def alerts_stream(ws):
@@ -161,6 +176,38 @@ def handle_new_reading(reading: dict[str, Any]):
             q.put(payload, block=False)
         except Exception:
             pass
+    return event_id
+
+
+def handle_ml_prediction(reading: dict[str, Any], prediction: dict[str, Any], event_id: int | None = None):
+    """Persist predictive alerts without changing deterministic fault alerts."""
+    level = prediction.get("alert_level", "INFO")
+    if level == "INFO":
+        return None
+    connection = get_connection()
+    alert_type = "UNKNOWN_ANOMALY" if prediction.get("is_anomaly") else "PREDICTED_FAULT"
+    if prediction.get("health_score", 100) < 50:
+        alert_type = "CRITICAL_CABLE_HEALTH"
+    message = (
+        f"{level}: predicted {prediction.get('fault_type', 'UNKNOWN')} for "
+        f"{reading.get('edge_id') or reading.get('source_node_id')} "
+        f"(confidence {float(prediction.get('confidence', 0)):.1%}, "
+        f"health {prediction.get('health_score', 0)}/100). Inspect the cable segment."
+    )
+    cursor = connection.execute(
+        "INSERT INTO alerts (fault_event_id, type, message, created_at) VALUES (?, ?, ?, ?)",
+        (event_id, alert_type, message, utc_now_iso()),
+    )
+    connection.commit()
+    payload = {"event_id": event_id, "type": alert_type, "severity": level, "message": message, "created_at": utc_now_iso()}
+    with _alert_lock:
+        subscribers = list(_alert_subscribers)
+    for subscriber in subscribers:
+        try:
+            subscriber.put(payload, block=False)
+        except Exception:
+            pass
+    return cursor.lastrowid
 
 
 @module4_bp.get("/")

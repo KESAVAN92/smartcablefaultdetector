@@ -163,7 +163,7 @@ def schedule_fault(reading_dict: dict):
         _pending_fault = reading_dict
 
 
-def init_module1_adapter(socketio, mapping_process_fn=None):
+def init_module1_adapter(socketio, mapping_process_fn=None, *, start_background=True):
     """
     Called from modules/module3/__init__.py after SocketIO is ready.
     mapping_process_fn is injected to avoid circular imports.
@@ -172,6 +172,7 @@ def init_module1_adapter(socketio, mapping_process_fn=None):
     _socketio = socketio
     if mapping_process_fn:
         _mapping_process_fn = mapping_process_fn
-    t = threading.Thread(target=_background_loop, daemon=True, name="m1-adapter-loop")
-    t.start()
-    print("[m1_adapter] background emission loop started")
+    if start_background:
+        t = threading.Thread(target=_background_loop, daemon=True, name="m1-adapter-loop")
+        t.start()
+        print("[m1_adapter] background emission loop started")
