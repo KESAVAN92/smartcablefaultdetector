@@ -15,6 +15,8 @@ from flask_socketio import SocketIO
 
 # Point to in-memory DB BEFORE importing anything that touches the DB
 os.environ["DATABASE_URL"] = "sqlite://"  # in-memory SQLite
+os.environ["MODULE3_START_BACKGROUND"] = "0"
+os.environ["MODULE1_START_BACKGROUND"] = "0"
 
 from database import Base, SessionLocal, engine, init_db
 from app import create_app
@@ -23,8 +25,7 @@ from app import create_app
 @pytest.fixture(scope="session")
 def flask_app():
     """Create application configured for testing."""
-    _app = create_app()
-    _app.config["TESTING"] = True
+    _app = create_app({"TESTING": True, "ML_ENABLE_ASYNC_PREDICTIONS": False})
     return _app
 
 

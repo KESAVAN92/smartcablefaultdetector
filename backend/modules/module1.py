@@ -83,6 +83,7 @@ class FaultReading:
     source_node_id: str
     recorded_at: str
     rc_ohms_per_m: float
+    edge_id: str | None = None
 
     def to_record(self) -> dict[str, Any]:
         payload = asdict(self)
@@ -153,6 +154,7 @@ class FaultSimulationEngine:
         sensor_voltage: float | None = None,
         current_amps: float | None = None,
         recorded_at: str | None = None,
+        edge_id: str | None = None,
     ) -> FaultReading:
         adc_int = self.validate_adc(adc_value)
         rc_value = self.validate_rc(rc_ohms_per_m)
@@ -179,6 +181,7 @@ class FaultSimulationEngine:
             source_node_id=source_node_id,
             recorded_at=recorded_at or utc_now_iso(),
             rc_ohms_per_m=rc_value,
+            edge_id=edge_id,
         )
 
     def calculate_summary(
@@ -255,10 +258,14 @@ class FaultReadingsRepository:
                 distance_m REAL,
                 is_overload INTEGER NOT NULL,
                 source_node_id TEXT NOT NULL,
-                recorded_at TEXT NOT NULL
+                recorded_at TEXT NOT NULL,
+                edge_id TEXT
             )
             """
         )
+        columns = {row["name"] for row in connection.execute("PRAGMA table_info(fault_readings)")}
+        if "edge_id" not in columns:
+            connection.execute("ALTER TABLE fault_readings ADD COLUMN edge_id TEXT")
 
     def insert_reading(self, reading_payload: dict[str, Any]) -> dict[str, Any]:
         connection = self.connect()
@@ -273,8 +280,9 @@ class FaultReadingsRepository:
                     distance_m,
                     is_overload,
                     source_node_id,
-                    recorded_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    recorded_at,
+                    edge_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     reading_payload["adc_value"],
@@ -285,6 +293,7 @@ class FaultReadingsRepository:
                     1 if reading_payload["is_overload"] else 0,
                     reading_payload["source_node_id"],
                     reading_payload["recorded_at"],
+                    reading_payload.get("edge_id"),
                 ),
             )
             connection.commit()
@@ -336,6 +345,7 @@ class FaultReadingsRepository:
             "is_overload": bool(row["is_overload"]),
             "source_node_id": row["source_node_id"],
             "recorded_at": row["recorded_at"],
+            "edge_id": row["edge_id"] if "edge_id" in row.keys() else None,
         }
 
 
@@ -527,6 +537,7 @@ def create_reading():
             else float(payload.get("distance_m")),
             "is_overload": require_bool(payload, "is_overload"),
             "source_node_id": require_source_node_id(payload),
+            "edge_id": str(payload["edge_id"]).strip() if payload.get("edge_id") else None,
             "recorded_at": str(payload.get("recorded_at") or utc_now_iso()),
         }
         if reading["distance_m"] is not None and reading["distance_m"] < 0:
@@ -537,20 +548,39 @@ def create_reading():
         return make_error(str(exc))
 
     stored = runtime.repository.insert_reading(reading)
+    event_id = None
     # Notify module4 (if present) about new reading so it can create fault-events/alerts.
     try:
         # Import lazily to avoid import-time cycles when module4 is not present.
         from . import module4
 
         try:
-            module4.handle_new_reading(stored)
+            event_id = module4.handle_new_reading(stored)
         except Exception:
             # Do not let alerting failures break the readings pipeline.
             pass
     except ImportError:
         # Module4 not installed yet; skip hook.
         pass
-    return jsonify(stored), 201
+    try:
+        if not runtime.app.config.get("ML_ENABLE_ASYNC_PREDICTIONS", True):
+            return jsonify({**stored, "ml_prediction_status": "disabled_in_testing"}), 201
+
+        def enrich_with_ml():
+            try:
+                prediction = runtime.app.extensions["ml_prediction_service"].predict(
+                    stored, fault_event_id=event_id
+                )
+                module4.handle_ml_prediction(stored, prediction, event_id)
+            except Exception:
+                # Prediction persistence must not interrupt sensor ingestion.
+                pass
+
+        threading.Thread(target=enrich_with_ml, daemon=True, name="ml-reading-enrichment").start()
+    except Exception:
+        # ML is an enhancement; deterministic reading, mapping, and alerts remain available.
+        pass
+    return jsonify({**stored, "ml_prediction_status": "queued"}), 201
 
 
 @module1_bp.post("/simulate/inject-fault")
@@ -577,6 +607,7 @@ def inject_fault():
             rc_ohms_per_m=rc_value,
             source_node_id=source_node_id,
             current_amps=current_amps,
+            edge_id=str(payload["edge_id"]).strip() if payload.get("edge_id") else None,
         )
         runtime.enqueue_fault_reading(reading)
     except ValueError as exc:

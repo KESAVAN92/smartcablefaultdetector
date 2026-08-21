@@ -6,10 +6,13 @@ sqlalchemy==2.0.35
 alembic==1.13.3
 networkx==3.4.2
 python-dotenv==1.0.1
-eventlet==0.37.0
+eventlet>=0.40,<1
 flask-sock==0.7.0
 pytest==8.3.3
 pytest-asyncio==0.24.0
 websockets==17.0.1
 requests==2.32.3
 PyJWT==2.8.0
+numpy>=2.0,<3
+scikit-learn>=1.5,<2
+xgboost>=2.1,<4

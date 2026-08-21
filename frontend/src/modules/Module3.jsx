@@ -56,6 +56,7 @@ export default function Module3() {
     fetchHistory();
   }, [fetchHistory]);
 
+
   const handleEventClick = (event) => setSelectedEvent(event);
 
   const handleInjected = () => {

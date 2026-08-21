@@ -16,7 +16,7 @@ from .routes import module3_bp, ReadingsNamespace, FaultEventsNamespace
 __all__ = ["module3_bp", "init_module3"]
 
 
-def init_module3(socketio):
+def init_module3(socketio, *, start_background=True):
     """
     Wire Module 3's services and start the M1 background emitter.
     Called from app.py after SocketIO + DB are initialised.
@@ -30,4 +30,8 @@ def init_module3(socketio):
 
     init_mapping_service(socketio)
     # Pass process_reading callback to avoid circular import in the adapter
-    init_module1_adapter(socketio, mapping_process_fn=process_reading)
+    init_module1_adapter(
+      socketio,
+      mapping_process_fn=process_reading,
+      start_background=start_background,
+    )

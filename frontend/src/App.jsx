@@ -7,6 +7,7 @@ import Module4 from "./modules/Module4";
 import Login from "./pages/Login";
 import { AuthProvider, AuthContext } from "./auth";
 import Notifications from "./components/Notifications";
+import MLAnalytics from "./pages/MLAnalytics";
 
 const links = [
   { to: "/", label: "Overview" },
@@ -14,6 +15,7 @@ const links = [
   { to: "/module-2", label: "Module 2" },
   { to: "/module-3", label: "Module 3" },
   { to: "/module-4", label: "Module 4" },
+  { to: "/ml-analytics", label: "ML Analytics" },
 ];
 
 import { useContext } from "react";
@@ -57,6 +59,7 @@ export default function App() {
             <Route path="/module-1" element={<Module1 />} />
             <Route path="/module-2" element={<Module2 />} />
             <Route path="/module-3" element={<Module3 />} />
+            <Route path="/ml-analytics" element={<MLAnalytics />} />
             <Route
               path="/module-4"
               element={

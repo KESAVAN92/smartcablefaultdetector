@@ -47,9 +47,21 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.config.update(
         DATABASE_PATH=str(base_dir / "data" / "module2.sqlite3"),
         MODULE2_LAYOUT_DIR=str(base_dir / "storage" / "module2"),
+        ML_DATASET_PATH=str(base_dir.parent / "underground_cable_ml_dataset_30000 (8).csv"),
+        ML_MODEL_VERSION="ml-demo-2026.08",
+        ML_UNKNOWN_CONFIDENCE_THRESHOLD=0.50,
     )
     if test_config:
         app.config.update(test_config)
+    app.config.setdefault(
+        "ML_ENABLE_ASYNC_PREDICTIONS",
+        not app.config.get("TESTING", False),
+    )
+    app.config.setdefault(
+        "MODULE3_START_BACKGROUND",
+        os.environ.get("MODULE3_START_BACKGROUND", "1") == "1"
+        and not app.config.get("TESTING", False),
+    )
 
     Path(app.config["DATABASE_PATH"]).parent.mkdir(parents=True, exist_ok=True)
     Path(app.config["MODULE2_LAYOUT_DIR"]).mkdir(parents=True, exist_ok=True)
@@ -94,7 +106,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.register_blueprint(module3_bp, url_prefix="/api/module3")
 
     # Wire Module 3's services (mapping service + M1 adapter background thread)
-    init_module3(socketio)
+    init_module3(socketio, start_background=app.config["MODULE3_START_BACKGROUND"])
 
     init_module1(app)
 
@@ -111,6 +123,11 @@ def create_app(test_config: dict | None = None) -> Flask:
     except Exception:
         # If module4 fails to initialize, continue without blocking the app startup.
         pass
+    from ml.api import ml_bp
+    from ml.prediction_service import PredictionService
+
+    app.extensions["ml_prediction_service"] = PredictionService(app)
+    app.register_blueprint(ml_bp)
     # Exact contract aliases for downstream consumers.
     app.add_url_rule("/readings", "module1_readings_post", create_reading, methods=["POST"])
     app.add_url_rule("/readings", "module1_readings_get", list_readings, methods=["GET"])
@@ -123,6 +140,7 @@ def create_app(test_config: dict | None = None) -> Flask:
 app = create_app(
     {
         "MODULE1_START_BACKGROUND": os.environ.get("MODULE1_START_BACKGROUND", "1") == "1",
+        "MODULE3_START_BACKGROUND": os.environ.get("MODULE3_START_BACKGROUND", "1") == "1",
     }
 )
 
