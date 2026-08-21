@@ -16,8 +16,10 @@ const links = [
   { to: "/module-4", label: "Module 4" },
 ];
 
+import { useContext } from "react";
+
 function RequireAuth({ children }) {
-  const { token } = React.useContext(AuthContext);
+  const { token } = useContext(AuthContext);
   if (!token) return <Navigate to="/login" replace />;
   return children;
 }

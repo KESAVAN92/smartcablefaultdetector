@@ -1,11 +1,7 @@
 """
 Module 1 Adapter — lives inside modules/module3/adapters/ (Module 3's territory).
 
-TODO-integrate: When Module 1 teammates push branch module-1-fault-sensing-engine,
-  EITHER:
-    (a) Keep this adapter but change _call_real_m1() to call their live API, OR
-    (b) Have their background task call mapping_service.process_reading() directly.
-  No other Module 3 file needs to change.
+
 
 This file implements:
   • The exact hardware formula pipeline from project report Section 9.2

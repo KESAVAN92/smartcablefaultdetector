@@ -19,6 +19,7 @@ def app(tmp_path: Path):
             "TESTING": True,
             "DATABASE_PATH": str(tmp_path / "test-module2.sqlite3"),
             "MODULE2_LAYOUT_DIR": str(tmp_path / "layout"),
+            "JWT_SECRET": "test-jwt-secret",
         }
     )
     return app

@@ -17,6 +17,12 @@ export default defineConfig({
         ws: true,
         changeOrigin: true,
       },
+      // Forward alerts stream WebSocket traffic for module 4
+      "/alerts/stream": {
+        target: "http://localhost:5000",
+        ws: true,
+        changeOrigin: true,
+      },
     },
   },
   test: {

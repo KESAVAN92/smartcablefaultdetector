@@ -27,3 +27,25 @@ class DashboardChannel(NotificationChannel):
         except Exception:
             # Best-effort; don't raise on UI notification failures
             pass
+
+
+class SMSChannel(NotificationChannel):
+    """Stub for future GSM/SMS integration.
+    
+    TODO: Integrate with an SMS gateway (e.g. Twilio, GSM modem) to dispatch critical alerts.
+    """
+    def send(self, payload: Dict[str, Any]) -> None:
+        # TODO: Implement SMS dispatch
+        print(f"SMS stub: sending {payload}")
+        pass
+
+
+class EmailChannel(NotificationChannel):
+    """Stub for future Email integration.
+    
+    TODO: Integrate with SMTP/Email provider to dispatch reports and alerts.
+    """
+    def send(self, payload: Dict[str, Any]) -> None:
+        # TODO: Implement Email dispatch
+        print(f"Email stub: sending {payload}")
+        pass

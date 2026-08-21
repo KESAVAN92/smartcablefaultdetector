@@ -1,6 +1,12 @@
 from __future__ import annotations
 
 
+import jwt
+
+def get_auth_headers():
+    token = jwt.encode({"email": "admin@t.local", "role": "admin"}, "test-jwt-secret", algorithm="HS256")
+    return {"Authorization": f"Bearer {token}"}
+
 def create_node(client, *, name: str, node_type: str, x: float, y: float):
     response = client.post(
         "/api/module2/nodes",
@@ -10,6 +16,7 @@ def create_node(client, *, name: str, node_type: str, x: float, y: float):
             "x_coord": x,
             "y_coord": y,
         },
+        headers=get_auth_headers()
     )
     assert response.status_code == 201, response.get_json()
     return response.get_json()
@@ -33,6 +40,7 @@ def create_edge(
             "resistance_per_m": resistance_per_m,
             "cable_type": cable_type,
         },
+        headers=get_auth_headers()
     )
     assert response.status_code == 201, response.get_json()
     return response.get_json()
@@ -57,12 +65,13 @@ def test_node_crud(client):
             "x_coord": 150,
             "y_coord": 250,
         },
+        headers=get_auth_headers()
     )
     assert updated.status_code == 200
     assert updated.get_json()["name"] == "Panel A Updated"
     assert updated.get_json()["x_coord"] == 150
 
-    deleted = client.delete(f"/api/module2/nodes/{created['id']}")
+    deleted = client.delete(f"/api/module2/nodes/{created['id']}", headers=get_auth_headers())
     assert deleted.status_code == 204
 
     missing = client.get(f"/api/module2/nodes/{created['id']}")
@@ -98,6 +107,7 @@ def test_edge_crud(client):
             "resistance_per_m": 0.02,
             "cable_type": "PVC",
         },
+        headers=get_auth_headers()
     )
     assert updated.status_code == 200
     payload = updated.get_json()
@@ -105,7 +115,7 @@ def test_edge_crud(client):
     assert payload["to_node_id"] == node_c["id"]
     assert payload["length_m"] == 80
 
-    deleted = client.delete(f"/api/module2/edges/{created['id']}")
+    deleted = client.delete(f"/api/module2/edges/{created['id']}", headers=get_auth_headers())
     assert deleted.status_code == 204
 
     missing = client.get(f"/api/module2/edges/{created['id']}")
@@ -131,6 +141,7 @@ def test_duplicate_undirected_edge_is_rejected(client):
             "resistance_per_m": 0.01,
             "cable_type": "XLPE",
         },
+        headers=get_auth_headers()
     )
 
     assert duplicate.status_code == 409
@@ -148,6 +159,7 @@ def test_invalid_edge_unknown_node_returns_404(client):
             "resistance_per_m": 0.01,
             "cable_type": "XLPE",
         },
+        headers=get_auth_headers()
     )
 
     assert response.status_code == 404
@@ -296,7 +308,7 @@ def test_graph_export_and_import(client):
             }
         ],
     }
-    imported = client.post("/api/module2/graph/import", json=replaced)
+    imported = client.post("/api/module2/graph/import", json=replaced, headers=get_auth_headers())
     assert imported.status_code == 201
     graph = client.get("/api/module2/graph")
     assert graph.status_code == 200
@@ -331,7 +343,7 @@ def test_graph_import_rejects_invalid_payload_without_partial_write(client):
         ],
     }
 
-    response = client.post("/api/module2/graph/import", json=invalid_payload)
+    response = client.post("/api/module2/graph/import", json=invalid_payload, headers=get_auth_headers())
     assert response.status_code == 422
 
     listed = client.get("/api/module2/nodes")

@@ -1,8 +1,6 @@
 /**
  * useFaultStream — subscribes to Module 3's /fault-events WebSocket namespace.
  * Returns { liveEvents, connected, clearEvents }
- *
- * TODO-integrate: Once M1 is live, also subscribe to /readings for raw readings overlay.
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";

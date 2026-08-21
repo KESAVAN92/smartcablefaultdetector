@@ -187,8 +187,7 @@ def inject_fault():
     then runs it through the same engine — so injected faults are
     indistinguishable from real sensor readings.
 
-    TODO-integrate: when M1 is live, this can also call their endpoint at
-    POST /api/module1/simulate/inject-fault for full end-to-end testing.
+    # This can also call the M1 endpoint at for full end-to-end testing.
     """
     body = request.get_json(silent=True)
     if not body:

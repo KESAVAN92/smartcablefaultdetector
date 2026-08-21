@@ -1,11 +1,6 @@
 """
 Module 2 Adapter — lives inside modules/module3/adapters/ (Module 3's territory).
 
-TODO-integrate: When Module 2 teammates push branch module-2-graph-engine,
-  change USE_REAL_M2_API = True (or set env M2_API_URL).
-  The graph_nearest() function will then call their live endpoint.
-  No other Module 3 file needs to change.
-
 This file provides:
   • In-memory demo graph (6 nodes, 6 edges) matching the NEC layout image
   • graph_nearest(): BFS/Dijkstra traversal — same algorithm as Module 2's spec
@@ -145,7 +140,7 @@ def _build_nx_graph(nodes: dict, edges: dict) -> nx.Graph:
 def _get_nodes_and_edges() -> tuple[dict, dict]:
     """
     Returns (nodes, edges).
-    TODO-integrate: if M2_API_URL is set, fetch from M2's /graph endpoint instead.
+    If M2_API_URL is set, fetches from M2's /graph endpoint instead.
     """
     if M2_API_URL:
         try:

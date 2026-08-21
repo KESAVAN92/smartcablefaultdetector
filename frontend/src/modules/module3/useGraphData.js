@@ -1,6 +1,6 @@
 /**
  * useGraphData — fetches graph nodes + edges from Module 3's /graph endpoint.
- * TODO-integrate: when M2 is live, this can switch to /api/module2/graph directly.
+ * Fetches the static map data (nodes/edges).
  */
 
 import { useCallback, useEffect, useState } from "react";

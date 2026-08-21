@@ -14,6 +14,7 @@ def test_register_login_and_reports_flow(tmp_path):
         "TESTING": True,
         "DATABASE_PATH": db_path,
         "MODULE1_START_BACKGROUND": False,
+        "JWT_SECRET": "test-jwt-secret",
     })
     client = app.test_client()
 

@@ -1,82 +1,62 @@
-# Underground Cable Fault Distance Locator — Graph Mapping Extension
+# Underground Cable Fault Distance Locator with Graph-Based Digital Mapping
 
-This workspace contains the backend and frontend for the "Underground Cable Fault Distance Locator with Graph-Based Digital Mapping" project. It extends a validated hardware prototype with a simulated readings pipeline, graph engine, and a mapping UI.
+This project implements a web-based cable fault detection and mapping system, structured in 4 modular components. It builds upon a hardware system for fault sensing by adding full digital mapping, live alerts, JWT-based authentication, and automated reporting.
 
-Overview
-- backend/: Flask-based APIs for Modules 1–4
-- frontend/: React + Vite UI
+## Architecture & Module Ownership
 
-Quickstart (local)
-1. Copy `.env.example` to `.env` and set `JWT_SECRET`.
-2. Backend:
+This project is divided into four main modules:
 
-```powershell
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r backend/requirements.txt
-set JWT_SECRET=some-secret
-python backend/app.py
+1. **Module 1: Fault Sensing Engine**
+   - Implements hardware sensing formula pipeline (ADC -> Voltage -> Resistance -> Distance).
+   - Injects simulated faults for end-to-end testing.
+2. **Module 2: Graph Engine & Layout**
+   - Handles physical node and edge (cable) digitization.
+   - Calculates the shortest path and nearest node to any given fault distance using Dijkstra's algorithm.
+3. **Module 3: Mapping & UI Integration**
+   - Frontend map visualization (React/Vite).
+   - Listens to real-time fault events via Socket.IO.
+4. **Module 4: Authentication, Alerts, & Reports**
+   - User authentication and route protection with JWT.
+   - Fault event logging, real-time alert notifications, and historical CSV exports.
+
+```mermaid
+graph TD
+    M1[Module 1: Sensing] -->|Raw Readings| M3[Module 3: Mapping & Adapter]
+    M2[Module 2: Graph Engine] -->|Graph Topology| M3
+    M3 -->|Fault Events| M4[Module 4: Alerts & Reports]
+    UI[React Frontend] <--> M3
+    UI <--> M4
 ```
 
-3. Frontend:
+## Setup & Running Instructions
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+### Option 1: Docker Compose (Recommended)
+You can bring up the entire stack (Backend + Frontend) via Docker.
+1. Copy `.env.example` to `.env` and set a secure `JWT_SECRET`.
+2. Run `docker-compose up --build`.
+3. The frontend is accessible at `http://localhost:3000`.
 
-Docker (dev):
-
-```bash
-docker compose up --build
-```
-
-What I changed
-- Implemented Module 4 backend scaffolding with users, JWT auth, fault events, alerts, and basic reports (CSV export).
-- Added `require_auth` guards to Module 2 mutation endpoints.
-- Frontend: added login, auth context, and reports UI in `Module4`.
-- Added `.env.example`, `.gitignore`, `docker-compose.yml`, and a notification interface.
-
-Next steps / Known gaps
-- Backend: add robust websocket broadcaster for alerts (Module 4 currently keeps in-app notification list; real push requires background broadcaster).
-- Frontend: integrate live toasts and buzzer from server-sent websocket messages (needs server broadcaster).
-- Tests: run `pytest` and fix any regressions (this environment lacked installed deps so tests weren't executed here).
-# Cable Fault Detector Starter
-
-This workspace now includes:
-
-- `frontend/`: React + Vite starter app
-- `backend/`: Python Flask API starter
-- `module1` to `module4` in both frontend and backend
-
-## Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-If PowerShell blocks `npm`, use:
-
-```bash
-npm.cmd install
-npm.cmd run dev
-```
-
-## Backend
-
+### Option 2: Manual Run
+#### Backend
 ```bash
 cd backend
-python -m pip install -r requirements.txt
+python -m venv .venv
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+pip install -r requirements.txt
+export JWT_SECRET="your-secret"
 python app.py
 ```
 
-## API Routes
+#### Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
+The Vite dev server will run on port 5173 and proxy API requests to `http://localhost:5000`.
 
-- `GET /api/health`
-- `GET /api/module1/`
-- `GET /api/module2/`
-- `GET /api/module3/`
-- `GET /api/module4/`
+## API Summary
+- **Module 1 (Sensing)**: `POST /api/module1/simulate/inject-fault`
+- **Module 2 (Graph)**: `GET/POST /api/module2/nodes`, `GET/POST /api/module2/edges`, `GET /api/module2/graph/nearest`
+- **Module 3 (Map)**: `WS /readings/stream`, `WS /fault-events/stream`
+- **Module 4 (Auth & Reports)**: `POST /api/module4/auth/register`, `POST /api/module4/auth/login`, `GET /api/module4/reports/fault-history`
