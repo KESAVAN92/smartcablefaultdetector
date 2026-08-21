@@ -537,6 +537,19 @@ def create_reading():
         return make_error(str(exc))
 
     stored = runtime.repository.insert_reading(reading)
+    # Notify module4 (if present) about new reading so it can create fault-events/alerts.
+    try:
+        # Import lazily to avoid import-time cycles when module4 is not present.
+        from . import module4
+
+        try:
+            module4.handle_new_reading(stored)
+        except Exception:
+            # Do not let alerting failures break the readings pipeline.
+            pass
+    except ImportError:
+        # Module4 not installed yet; skip hook.
+        pass
     return jsonify(stored), 201
 
 

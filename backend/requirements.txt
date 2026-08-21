@@ -10,5 +10,6 @@ eventlet==0.37.0
 flask-sock==0.7.0
 pytest==8.3.3
 pytest-asyncio==0.24.0
-websockets==13.1
+websockets==17.0.1
 requests==2.32.3
+PyJWT==2.8.0

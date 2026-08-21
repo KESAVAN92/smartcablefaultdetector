@@ -6,6 +6,7 @@ from flask import Blueprint, current_app, jsonify, request, send_file
 from werkzeug.utils import secure_filename
 
 from .module2_graph import GraphService
+from .auth import require_auth
 from .module2_store import (
     Module2Error,
     ValidationError,
@@ -53,6 +54,7 @@ def get_module2():
 
 
 @module2_bp.post("/nodes")
+@require_auth(role="engineer")
 def post_node():
     node = create_node(get_connection(), request.get_json(force=True, silent=False) or {})
     return jsonify(node), 201
@@ -69,18 +71,21 @@ def get_node_by_id(node_id: str):
 
 
 @module2_bp.put("/nodes/<node_id>")
+@require_auth(role="engineer")
 def put_node(node_id: str):
     node = update_node(get_connection(), node_id, request.get_json(force=True, silent=False) or {})
     return jsonify(node)
 
 
 @module2_bp.delete("/nodes/<node_id>")
+@require_auth(role="engineer")
 def remove_node(node_id: str):
     delete_node(get_connection(), node_id)
     return "", 204
 
 
 @module2_bp.post("/edges")
+@require_auth(role="engineer")
 def post_edge():
     edge = create_edge(get_connection(), request.get_json(force=True, silent=False) or {})
     return jsonify(edge), 201
@@ -97,12 +102,14 @@ def get_edge_by_id(edge_id: str):
 
 
 @module2_bp.put("/edges/<edge_id>")
+@require_auth(role="engineer")
 def put_edge(edge_id: str):
     edge = update_edge(get_connection(), edge_id, request.get_json(force=True, silent=False) or {})
     return jsonify(edge)
 
 
 @module2_bp.delete("/edges/<edge_id>")
+@require_auth(role="engineer")
 def remove_edge(edge_id: str):
     delete_edge(get_connection(), edge_id)
     return "", 204
@@ -141,6 +148,7 @@ def export_graph():
 
 
 @module2_bp.post("/graph/import")
+@require_auth(role="admin")
 def import_graph():
     replace_graph(get_connection(), request.get_json(force=True, silent=False) or {})
     return jsonify(GraphService(get_connection()).get_graph()), 201
@@ -171,6 +179,7 @@ def get_layout_image_file(filename: str):
 
 
 @module2_bp.post("/layout-image")
+@require_auth(role="admin")
 def upload_layout_image():
     if "file" not in request.files:
         raise ValidationError("A layout image file is required.")

@@ -103,6 +103,14 @@ def create_app(test_config: dict | None = None) -> Flask:
     def health_check():
         return jsonify({"status": "ok", "service": "cablefaultdetector-backend"})
 
+    # Initialize module4 (alerts, auth, reports)
+    try:
+        from modules.module4 import init_module4
+
+        init_module4(app)
+    except Exception:
+        # If module4 fails to initialize, continue without blocking the app startup.
+        pass
     # Exact contract aliases for downstream consumers.
     app.add_url_rule("/readings", "module1_readings_post", create_reading, methods=["POST"])
     app.add_url_rule("/readings", "module1_readings_get", list_readings, methods=["GET"])
